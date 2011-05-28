@@ -29,6 +29,7 @@ public class MyApplication extends Application implements Property.ValueChangeLi
     private IMDBChartList chartList;
     private UserChecklist userChecklist;
     private Top250Table table = new Top250Table("IMDB Top 250");
+    private UserTopTable tableUserTop = new UserTopTable("Widziane przez ciebie");
 
     @Override
     public void init() {
@@ -50,10 +51,20 @@ public class MyApplication extends Application implements Property.ValueChangeLi
     @Override
     public void valueChange(ValueChangeEvent event) {
         String userName = (String) user.getValue();
-        // Show the new value we received
-        getWindow().showNotification("Witaj " + userName + "!");
+        
 
+        user.setVisible(false);
+        showUserPage(userName);
+    }
+    
+    private void showUserPage(String userName) {
+        Window window = getWindow();
+        Label userNameLabel = new Label("<h1>"+userName+"</h1>",  Label.CONTENT_XHTML);
+        window.showNotification("Witaj " + userName + "!");
+        window.addComponent(userNameLabel);
+        
         userChecklist = new UserChecklist(userName);
+
         showMoviesTable();
     }
 
@@ -68,16 +79,54 @@ public class MyApplication extends Application implements Property.ValueChangeLi
 
     private void showMoviesTable() {
         Iterator it = chartList.iterator();
-
+        table.removeAllItems();
         table.addItemsFromIterator(it);
-
         getWindow().addComponent(table);
+    }
+    
+    private void showUserChecklistTable() {
+        Iterator it = (Iterator) userChecklist.iterator();
+        tableUserTop.removeAllItems();
+        tableUserTop.addItemsFromIterator(it);
+        getWindow().addComponent(tableUserTop);
+        
+    }
+    
+    private class UserTopTable extends Top250Table {
+        @SuppressWarnings("FieldNameHidesFieldInSuperclass")
+        protected static final String DEFAULT_SORT = "Ocena";
+        
+        @SuppressWarnings("FieldNameHidesFieldInSuperclass")
+        protected final Object[][] fields = new Object[][]{
+            {"Ocena", Integer.class, null},
+            {"Nazwa filmu", String.class, null}
+        };
+        
+        public UserTopTable(String name){
+            super(name);
+        }
+        
+        @Override
+        public void addItemsFromIterator(Iterator it) {
+            int i = 0;
+            while (it.hasNext()) {
+                Map.Entry mapInstance = (Map.Entry) it.next();
+                String movieName = (String)mapInstance.getKey();
+                Integer rating = (Integer) mapInstance.getValue();
+
+                table.addItem(new Object[]{rating, movieName}, new Integer(i));
+                i++;
+            }
+            
+            setSorting(false); 
+        }
+        
     }
 
     private class Top250Table extends Table {
 
-        private static final String DEFAULT_SORT = "Ranking";
-        private final Object[][] fields = new Object[][]{
+        protected static final String DEFAULT_SORT = "Ranking";
+        protected final Object[][] fields = new Object[][]{
             {"Ranking", Integer.class, null},
             {"Ocena", Float.class, null},
             {"Nazwa filmu", String.class, null},
@@ -87,7 +136,6 @@ public class MyApplication extends Application implements Property.ValueChangeLi
         public Top250Table(String name) {
             super(name);
             setFields();
-            setSorting();
         }
 
         private void setFields() {
@@ -95,10 +143,14 @@ public class MyApplication extends Application implements Property.ValueChangeLi
                 this.addContainerProperty((String) field[0], (Class) field[1], field[2]);
             }
         }
-
-        private void setSorting() {
+        
+        protected void setSorting(boolean ascending) {
             this.setSortContainerPropertyId(DEFAULT_SORT);
-            this.setSortAscending(true);
+            this.setSortAscending(ascending);
+        }
+
+        protected void setSorting() {
+            setSorting(true);
         }
 
         public void addItemsFromIterator(Iterator it) {
@@ -110,6 +162,8 @@ public class MyApplication extends Application implements Property.ValueChangeLi
                 table.addItem(record.toArray(), new Integer(i));
                 i++;
             }
+            
+            setSorting(); 
         }
     }
 }

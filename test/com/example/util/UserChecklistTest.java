@@ -91,7 +91,7 @@ public class UserChecklistTest {
     public void testGetRatingForMovie() {
         System.out.println("getRatingForMovie");
         String movieName = "Być jak John Malkovich";
-        int rating = 9;
+        Integer rating = 9;
         
         checkMovie(movieName, rating);
         

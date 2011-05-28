@@ -5,6 +5,7 @@
 package com.example.util;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,11 +35,15 @@ public class UserChecklist {
         return (String[]) set.toArray(new String[set.size()]);
     }
 
-    public int getRatingForMovie(String movieName) {
-        return (int)checklist.get(movieName);
+    public Integer getRatingForMovie(String movieName) {
+        return (Integer)checklist.get(movieName);
     }
     
     public boolean hasMovie(String movieName){
         return checklist.containsKey(movieName);
+    }
+    
+    public Iterator iterator() {
+        return checklist.entrySet().iterator();
     }
 }
