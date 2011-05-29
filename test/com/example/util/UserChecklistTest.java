@@ -97,4 +97,17 @@ public class UserChecklistTest {
         
         assertEquals(instance.getRatingForMovie(movieName), rating);
     }
+    
+    @Test
+    public void testUncheck(){
+        System.out.println("uncheck");
+        
+        String movieName = "Być jak John Malkovich";
+        Integer rating = 9;
+        
+        checkMovie(movieName, rating);
+        
+        instance.uncheck(movieName);
+        assertFalse(instance.hasMovie(movieName));
+    }
 }

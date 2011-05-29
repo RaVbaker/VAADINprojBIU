@@ -29,6 +29,10 @@ public class UserChecklist {
     public void check(String movieName, int rating) {
         checklist.put(movieName, rating);
     }
+    
+    public void uncheck(String movieName) {
+        checklist.remove(movieName);
+    }
 
     public String[] getCheckedMovieNames() {
         Set set = checklist.keySet();

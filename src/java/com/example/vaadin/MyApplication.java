@@ -11,10 +11,11 @@ import com.example.util.UserChecklist;
 import com.vaadin.Application;
 import com.vaadin.data.Property;
 import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.event.MouseEvents.ClickEvent;
 import com.vaadin.ui.*;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import javax.validation.OverridesAttribute;
 
 /** 
  *
@@ -39,6 +40,7 @@ public class MyApplication extends Application implements Property.ValueChangeLi
 
         showInputUserName();
         initMoviesList();
+        initTableFields();
 
     }
 
@@ -51,18 +53,18 @@ public class MyApplication extends Application implements Property.ValueChangeLi
     @Override
     public void valueChange(ValueChangeEvent event) {
         String userName = (String) user.getValue();
-        
+
 
         user.setVisible(false);
         showUserPage(userName);
     }
-    
+
     private void showUserPage(String userName) {
         Window window = getWindow();
-        Label userNameLabel = new Label("<h1>"+userName+"</h1>",  Label.CONTENT_XHTML);
+        Label userNameLabel = new Label("<h1>" + userName + "</h1>", Label.CONTENT_XHTML);
         window.showNotification("Witaj " + userName + "!");
         window.addComponent(userNameLabel);
-        
+
         userChecklist = new UserChecklist(userName);
 
         showMoviesTable();
@@ -83,67 +85,81 @@ public class MyApplication extends Application implements Property.ValueChangeLi
         table.addItemsFromIterator(it);
         getWindow().addComponent(table);
     }
-    
+
     private void showUserChecklistTable() {
         Iterator it = (Iterator) userChecklist.iterator();
+        getWindow().removeComponent(tableUserTop);
+
         tableUserTop.removeAllItems();
+
         tableUserTop.addItemsFromIterator(it);
         getWindow().addComponent(tableUserTop);
-        
+
     }
-    
+
+    private void initTableFields() {
+        table.initFields();
+        tableUserTop.initFields();
+    }
+
     private class UserTopTable extends Top250Table {
-        @SuppressWarnings("FieldNameHidesFieldInSuperclass")
-        protected static final String DEFAULT_SORT = "Ocena";
-        
-        @SuppressWarnings("FieldNameHidesFieldInSuperclass")
-        protected final Object[][] fields = new Object[][]{
-            {"Ocena", Integer.class, null},
-            {"Nazwa filmu", String.class, null}
-        };
-        
-        public UserTopTable(String name){
+
+        protected String DEFAULT_SORT = "Ocena";
+
+        public UserTopTable(String name) {
             super(name);
         }
         
+        public void initFields() {
+            Object[][] fields = new Object[][]{
+                {"Pozycja na liście IMDB", Integer.class, null},
+                {"Nazwa filmu", String.class, null}
+            };
+            setFields(fields);
+        }
+
         @Override
         public void addItemsFromIterator(Iterator it) {
             int i = 0;
             while (it.hasNext()) {
                 Map.Entry mapInstance = (Map.Entry) it.next();
-                String movieName = (String)mapInstance.getKey();
+                String movieName = (String) mapInstance.getKey();
                 Integer rating = (Integer) mapInstance.getValue();
 
-                table.addItem(new Object[]{rating, movieName}, new Integer(i));
+                this.addItem(new Object[]{rating, movieName}, new Integer(i));
                 i++;
             }
-            
-            setSorting(false); 
+
+            setSorting(false);
         }
-        
     }
 
     private class Top250Table extends Table {
 
-        protected static final String DEFAULT_SORT = "Ranking";
-        protected final Object[][] fields = new Object[][]{
-            {"Ranking", Integer.class, null},
-            {"Ocena", Float.class, null},
-            {"Nazwa filmu", String.class, null},
-            {"Ilość głosów", String.class, null}
-        };
+        protected String DEFAULT_SORT = "Ranking";
 
         public Top250Table(String name) {
             super(name);
-            setFields();
+        }
+        public void initFields() {
+            Object[][] fields = new Object[][]{
+                {"Ranking", Integer.class, null},
+                {"Ocena", Float.class, null},
+                {"Nazwa filmu", String.class, null},
+                {"Ilość głosów", String.class, null},
+                {"Widziałem ten film", CheckBox.class, null}
+            };
+            setFields(fields);
         }
 
-        private void setFields() {
-            for (Object[] field : this.fields) {
+        protected void setFields(Object[][] fields) {
+            System.out.print(this.getClass().getName());
+
+            for (Object[] field : fields) {
                 this.addContainerProperty((String) field[0], (Class) field[1], field[2]);
             }
         }
-        
+
         protected void setSorting(boolean ascending) {
             this.setSortContainerPropertyId(DEFAULT_SORT);
             this.setSortAscending(ascending);
@@ -158,12 +174,58 @@ public class MyApplication extends Application implements Property.ValueChangeLi
             while (it.hasNext()) {
                 Map.Entry mapInstance = (Map.Entry) it.next();
                 IMDBChartRecord record = (IMDBChartRecord) mapInstance.getValue();
+                SeenMovieValueChanger valueChanger = new SeenMovieValueChanger();
+                valueChanger.setRecord(record);
+                System.out.print("Attch valueChanger" + i);
+                Object[] item = getItemFromArray(record.toArray(), valueChanger);
 
-                table.addItem(record.toArray(), new Integer(i));
+                this.addItem(item, new Integer(i));
                 i++;
             }
+
+            setSorting();
+        }
+
+        private Object[] getItemFromArray(Object[] itemBase, Button.ClickListener valueChanger) {
+            Object[] item = new Object[itemBase.length + 1];
+            for (int i = 0, len = itemBase.length; i < len; i++) {
+                item[i] = itemBase[i];
+            }
+
+            CheckBox isMovieSeen = new CheckBox();
+            isMovieSeen.setImmediate(true);
+            isMovieSeen.addListener(valueChanger);
+
+            item[itemBase.length] = isMovieSeen;
+            return item;
+        }
+    }
+
+    private class SeenMovieValueChanger implements Button.ClickListener {
+
+        private IMDBChartRecord record;
+
+        public void setRecord(IMDBChartRecord record) {
+            this.record = record;
+        }
+
+        public IMDBChartRecord getRecord() {
+            return record;
+        }
+
+        @Override
+        public void buttonClick(Button.ClickEvent event) {
+            String movieName = record.getTitle();
+            Integer rank = record.getRank();
+            if (userChecklist.hasMovie(movieName)) {
+                userChecklist.uncheck(movieName);
+            } else {
+                userChecklist.check(movieName, rank);
+            }
             
-            setSorting(); 
+            System.out.println(movieName);
+            showUserChecklistTable();
+
         }
     }
 }
