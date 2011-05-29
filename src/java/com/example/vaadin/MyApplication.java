@@ -61,7 +61,7 @@ public class MyApplication extends Application implements Property.ValueChangeLi
 
     private void showUserPage(String userName) {
         Window window = getWindow();
-        Label userNameLabel = new Label("<h1>" + userName + "</h1>", Label.CONTENT_XHTML);
+        Label userNameLabel = new Label("<h1>Jesteś użytkownikiem: " + userName + "</h1>", Label.CONTENT_XHTML);
         window.showNotification("Witaj " + userName + "!");
         window.addComponent(userNameLabel);
 
